@@ -1,9 +1,15 @@
 import torch
 import numpy as np
+from functools import lru_cache
 from torch_geometric.datasets import MoleculeNet
 from torch_geometric.loader import DataLoader
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import rdFingerprintGenerator
+
+
+@lru_cache(maxsize=32)
+def _morgan_generator(radius: int, n_bits: int):
+    return rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=n_bits)
 
 
 # ---- loading ----
@@ -42,11 +48,9 @@ def make_loaders(train_set, val_set, test_set, batch_size=64):
 def smiles_to_fingerprint(smiles, n_bits=1024, radius=2):
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
-        return np.zeros(n_bits)
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits)
-    arr = np.zeros(n_bits)
-    Chem.DataStructs.ConvertToNumpyArray(fp, arr)
-    return arr
+        return np.zeros(n_bits, dtype=np.float32)
+    fpgen = _morgan_generator(radius, n_bits)
+    return np.asarray(fpgen.GetFingerprintAsNumPy(mol), dtype=np.float32)
 
 def get_fingerprints(dataset, n_bits=1024, radius=2):
     # each data object has a .smiles attribute from MoleculeNet
