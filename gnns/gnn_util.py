@@ -10,13 +10,15 @@ class GCNModel(nn.Module):
     def __init__(self, in_channels, hidden=128):
         super().__init__()
         self.conv1 = GCNConv(in_channels, hidden)
+        self.bn1 = nn.BatchNorm1d(hidden)
         self.conv2 = GCNConv(hidden, hidden)
+        self.bn2 = nn.BatchNorm1d(hidden)
         self.out = nn.Linear(hidden, 1)
 
     def forward(self, x, edge_index, batch):
         x = x.float()
-        x = F.relu(self.conv1(x, edge_index))
-        x = F.relu(self.conv2(x, edge_index))
+        x = F.relu(self.bn1(self.conv1(x, edge_index)))
+        x = F.relu(self.bn2(self.conv2(x, edge_index)))
         x = global_mean_pool(x, batch)
         return self.out(x)
 
@@ -27,13 +29,15 @@ class GATModel(nn.Module):
     def __init__(self, in_channels, hidden=128, heads=4):
         super().__init__()
         self.conv1 = GATConv(in_channels, hidden // heads, heads=heads)
+        self.bn1 = nn.BatchNorm1d(hidden)
         self.conv2 = GATConv(hidden, hidden // heads, heads=heads)
+        self.bn2 = nn.BatchNorm1d(hidden)
         self.out = nn.Linear(hidden, 1)
 
     def forward(self, x, edge_index, batch):
         x = x.float()
-        x = F.relu(self.conv1(x, edge_index))
-        x = F.relu(self.conv2(x, edge_index))
+        x = F.relu(self.bn1(self.conv1(x, edge_index)))
+        x = F.relu(self.bn2(self.conv2(x, edge_index)))
         x = global_mean_pool(x, batch)
         return self.out(x)
 

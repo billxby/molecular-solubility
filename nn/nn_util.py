@@ -9,12 +9,14 @@ class MLPModel(nn.Module):
     def __init__(self, in_features=1024, hidden=128):
         super().__init__()
         self.fc1 = nn.Linear(in_features, hidden)
+        self.bn1 = nn.BatchNorm1d(hidden)
         self.fc2 = nn.Linear(hidden, hidden)
+        self.bn2 = nn.BatchNorm1d(hidden)
         self.out = nn.Linear(hidden, 1)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+        x = F.relu(self.bn1(self.fc1(x)))
+        x = F.relu(self.bn2(self.fc2(x)))
         return self.out(x)
 
 
