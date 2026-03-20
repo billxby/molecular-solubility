@@ -74,3 +74,8 @@ def rmse(preds, targets):
 
 def mae(preds, targets):
     return torch.mean(torch.abs(preds - targets)).item()
+
+def r_squared(preds, targets):
+    ss_res = torch.sum((targets - preds) ** 2)
+    ss_tot = torch.sum((targets - torch.mean(targets)) ** 2)
+    return (1 - ss_res / ss_tot).item()
