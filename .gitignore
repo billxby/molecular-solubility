@@ -1,1 +1,5 @@
 __pycache__/
+
+# trained checkpoints from training.ipynb (optional: adjust to commit artifacts)
+models/*
+!models/.gitkeep

@@ -5,7 +5,10 @@ Comparing three neural network architectures for predicting aqueous solubility (
 Project structure:
 
 training.ipynb
-  Main notebook. Trains all three models, evaluates them on the test set (RMSE, MAE, R²), and plots loss curves and predicted vs actual scatter plots.
+  Main notebook. Trains all three models, evaluates them on the test set (RMSE, MAE, R²), and plots loss curves and predicted vs actual scatter plots. After training, run the **save trained models** cell to write weights and histories under `models/` (`mlp.pt`, `gcn.pt`, `gat.pt`, `training_histories.json`). To avoid retraining on a later run, set `LOAD_SAVED_WEIGHTS = True` in the optional load cell (right after the data cell) and skip the three training sections; then run evaluation and plotting as usual.
+
+models/
+  Trained checkpoints produced by the notebook (contents ignored by git; the folder is kept with `.gitkeep`).
 
 extra-insights.ipynb
   Trains a GAT and visualizes attention weights on a few example molecules to see which atoms the model focuses on.
