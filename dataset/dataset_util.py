@@ -21,26 +21,37 @@ def load_esol(root='data/'):
 
 # ---- splits ----
 
-def split_dataset(dataset, train_ratio=0.8, val_ratio=0.1, seed=42):
+def split_dataset(dataset, test_ratio=0.2, seed=42):
     torch.manual_seed(seed)
     n = len(dataset)
     perm = torch.randperm(n)
 
-    train_size = int(n * train_ratio)
-    val_size = int(n * val_ratio)
+    test_size = int(n * test_ratio)
+    train_idx = perm[:n - test_size]
+    test_idx = perm[n - test_size:]
 
-    train_idx = perm[:train_size]
-    val_idx = perm[train_size:train_size + val_size]
-    test_idx = perm[train_size + val_size:]
-
-    return dataset[train_idx], dataset[val_idx], dataset[test_idx]
+    return dataset[train_idx], dataset[test_idx]
 
 
-def make_loaders(train_set, val_set, test_set, batch_size=64):
+def kfold_indices(n, k=5, seed=42):
+    """Return list of (train_indices, val_indices) for k-fold CV."""
+    torch.manual_seed(seed)
+    perm = torch.randperm(n)
+    fold_size = n // k
+    folds = []
+    for i in range(k):
+        val_start = i * fold_size
+        val_end = val_start + fold_size if i < k - 1 else n
+        val_idx = perm[val_start:val_end]
+        train_idx = torch.cat([perm[:val_start], perm[val_end:]])
+        folds.append((train_idx, val_idx))
+    return folds
+
+
+def make_loaders(train_set, test_set, batch_size=64):
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_set, batch_size=batch_size)
     test_loader = DataLoader(test_set, batch_size=batch_size)
-    return train_loader, val_loader, test_loader
+    return train_loader, test_loader
 
 
 # ---- fingerprints (for MLP baseline) ----

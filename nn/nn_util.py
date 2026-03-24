@@ -48,19 +48,24 @@ def eval_mlp(model, X, y, loss_fn):
     return loss_fn(pred, y).item()
 
 
-def run_training_mlp(model, X_train, y_train, X_val, y_val, epochs=200, lr=0.001):
+def run_training_mlp(model, X_train, y_train, X_val=None, y_val=None, epochs=200, lr=0.001, verbose=True):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
 
-    history = {'train_loss': [], 'val_loss': []}
+    history = {'train_loss': []}
+    if X_val is not None:
+        history['val_loss'] = []
     for epoch in range(1, epochs + 1):
         t_loss = train_epoch_mlp(model, X_train, y_train, optimizer, loss_fn)
-        v_loss = eval_mlp(model, X_val, y_val, loss_fn)
         history['train_loss'].append(t_loss)
-        history['val_loss'].append(v_loss)
+        msg = f'  epoch {epoch:>3d}  train {t_loss:.4f}'
+        if X_val is not None:
+            v_loss = eval_mlp(model, X_val, y_val, loss_fn)
+            history['val_loss'].append(v_loss)
+            msg += f'  val {v_loss:.4f}'
 
-        if epoch % 20 == 0 or epoch == 1:
-            print(f'  epoch {epoch:>3d}  train {t_loss:.4f}  val {v_loss:.4f}')
+        if verbose and (epoch % 20 == 0 or epoch == 1):
+            print(msg)
 
     return history
 
