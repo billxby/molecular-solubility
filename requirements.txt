@@ -1,5 +1,1 @@
 flask
-torch
-torch-geometric
-rdkit
-numpy
