@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from flask import Flask, render_template, jsonify
 
@@ -39,4 +40,4 @@ if __name__ == "__main__":
     print("Loading precomputed data ...")
     _load()
     print(f"Ready — {len(data['molecules'])} molecules.")
-    app.run(debug=False, port=0000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 4000)))
