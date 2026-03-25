@@ -1,12 +1,3 @@
-"""
-Molecular Solubility Prediction – Web App (lightweight)
-========================================================
-Serves precomputed predictions and attention maps from precomputed.json.
-No ML dependencies needed at runtime — just Flask.
-
-Run:  python3 app.py
-"""
-
 import json
 from pathlib import Path
 from flask import Flask, render_template, jsonify
@@ -48,4 +39,4 @@ if __name__ == "__main__":
     print("Loading precomputed data ...")
     _load()
     print(f"Ready — {len(data['molecules'])} molecules.")
-    app.run(debug=True, port=5050)
+    app.run(debug=False, port=0000)
