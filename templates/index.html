@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Molecular Solubility Explorer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #fff;
+    color: #1a1a1a;
+    height: 100vh;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .app {
+    display: flex;
+    height: 100vh;
+  }
+
+  /* -- left panel -- */
+  .left-panel {
+    width: 400px;
+    min-width: 300px;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    background: #fafafa;
+  }
+
+  .panel-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid #e0e0e0;
+    font-weight: 600;
+  }
+
+  .search-box {
+    padding: 10px 16px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .search-box input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+
+  .search-box input:focus {
+    outline: 2px solid #4a90d9;
+    outline-offset: -1px;
+    border-color: #4a90d9;
+  }
+
+  .mol-count {
+    padding: 6px 16px;
+    font-size: 12px;
+    color: #888;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .mol-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .mol-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+
+  .mol-item:hover { background: #f0f4f8; }
+  .mol-item.active { background: #4a90d9; color: #fff; }
+
+  .mol-item-smiles {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 12px;
+    font-family: Menlo, Consolas, monospace;
+    font-size: 12px;
+  }
+
+  .mol-item-value {
+    font-weight: 600;
+    min-width: 50px;
+    text-align: right;
+    color: #2a7ae2;
+  }
+
+  .mol-item.active .mol-item-value { color: #fff; }
+
+  /* -- right panel -- */
+  .right-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 32px;
+  }
+
+  .placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #999;
+  }
+
+  .detail { display: none; }
+  .detail.visible { display: block; }
+
+  .detail h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin: 24px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .detail h3:first-child { margin-top: 0; }
+
+  .smiles-display {
+    background: #f5f5f5;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: Menlo, Consolas, monospace;
+    word-break: break-all;
+    border: 1px solid #e0e0e0;
+  }
+
+  .structure-box {
+    display: inline-block;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 4px;
+  }
+
+  .structure-box svg { display: block; }
+
+  /* -- predictions table -- */
+  .pred-table {
+    width: 100%;
+    max-width: 480px;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .pred-table th,
+  .pred-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+
+  .pred-table th {
+    color: #666;
+    font-weight: 500;
+    font-size: 12px;
+    background: #fafafa;
+  }
+
+  .pred-table .val {
+    font-weight: 600;
+    font-family: Menlo, Consolas, monospace;
+  }
+
+  .pred-table .actual-row td {
+    font-weight: 600;
+    border-top: 2px solid #ddd;
+    background: #f8fafb;
+  }
+
+  .error-good { color: #2e7d32; }
+  .error-ok   { color: #e65100; }
+  .error-bad  { color: #c62828; }
+
+  /* -- attention -- */
+  .attention-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .attention-box {
+    display: inline-block;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 4px;
+  }
+
+  .attention-box svg { display: block; }
+
+  .atom-table {
+    font-size: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .atom-table table { border-collapse: collapse; }
+
+  .atom-table th,
+  .atom-table td {
+    padding: 3px 8px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .atom-table th {
+    color: #666;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .att-bar {
+    display: inline-block;
+    height: 8px;
+    border-radius: 4px;
+    vertical-align: middle;
+  }
+
+  .color-scale {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #888;
+    margin-top: 8px;
+  }
+
+  .color-scale-bar {
+    width: 100px;
+    height: 10px;
+    border-radius: 5px;
+    background: linear-gradient(to right, #b3d4ff, #fff, #e57373);
+    border: 1px solid #ddd;
+  }
+
+  .att-note {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="left-panel">
+    <div class="panel-header">Molecules (Test Set)</div>
+    <div class="search-box">
+      <input type="text" id="search" placeholder="Filter by SMILES ...">
+    </div>
+    <div class="mol-count" id="mol-count"></div>
+    <div class="mol-list" id="mol-list"></div>
+  </div>
+
+  <div class="right-panel">
+    <div class="placeholder" id="placeholder">Select a molecule from the list to view predictions</div>
+    <div class="detail" id="detail"></div>
+  </div>
+</div>
+
+<template id="detail-template">
+  <h3>SMILES</h3>
+  <div class="smiles-display" data-slot="smiles"></div>
+
+  <h3>2-D Structure</h3>
+  <div class="structure-box" data-slot="structure"></div>
+
+  <h3>Solubility Predictions (log mol/L)</h3>
+  <table class="pred-table">
+    <thead><tr><th>Model</th><th>Prediction</th><th>Abs Error</th></tr></thead>
+    <tbody data-slot="predictions"></tbody>
+  </table>
+
+  <h3>GAT Attention Map</h3>
+  <p class="att-note">Atom colour = aggregated attention from the GAT second layer. Blue = low, Red = high.</p>
+  <div class="attention-layout">
+    <div class="attention-box" data-slot="attention-svg"></div>
+    <div class="atom-table" data-slot="atom-table"></div>
+  </div>
+  <div class="color-scale">
+    <span>Low</span>
+    <div class="color-scale-bar"></div>
+    <span>High</span>
+  </div>
+</template>
+
+<script>
+(function () {
+  "use strict";
+
+  var state = { molecules: [], activeIdx: null };
+
+  var els = {
+    list: document.getElementById("mol-list"),
+    search: document.getElementById("search"),
+    count: document.getElementById("mol-count"),
+    placeholder: document.getElementById("placeholder"),
+    detail: document.getElementById("detail"),
+    template: document.getElementById("detail-template"),
+  };
+
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
+  function renderList(mols) {
+    els.list.innerHTML = "";
+    els.count.textContent = mols.length + " molecules";
+
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < mols.length; i++) {
+      var m = mols[i];
+      var div = document.createElement("div");
+      div.className = "mol-item" + (m.id === state.activeIdx ? " active" : "");
+      div.dataset.id = m.id;
+
+      var smilesSpan = document.createElement("span");
+      smilesSpan.className = "mol-item-smiles";
+      smilesSpan.textContent = m.smiles;
+
+      var valSpan = document.createElement("span");
+      valSpan.className = "mol-item-value";
+      valSpan.textContent = m.actual.toFixed(2);
+
+      div.appendChild(smilesSpan);
+      div.appendChild(valSpan);
+      frag.appendChild(div);
+    }
+    els.list.appendChild(frag);
+  }
+
+  function getFilteredMolecules() {
+    var q = els.search.value.toLowerCase();
+    if (!q) return state.molecules;
+    return state.molecules.filter(function (m) {
+      return m.smiles.toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  function errorClass(err) {
+    if (err > 1.0) return "error-bad";
+    if (err > 0.5) return "error-ok";
+    return "error-good";
+  }
+
+  // Compute attention bar color to match the blue-white-red scale used in the SVG
+  function attentionColor(v) {
+    var r, g, b;
+    if (v < 0.5) {
+      var t = v * 2;
+      r = Math.round((0.7 * (1 - t) + t) * 255);
+      g = Math.round((0.85 * (1 - t) + t) * 255);
+      b = 255;
+    } else {
+      var t2 = (v - 0.5) * 2;
+      r = 255;
+      g = Math.round(255 * (1 - t2));
+      b = Math.round(179 * (1 - t2));
+    }
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+
+  function renderDetail(d) {
+    var clone = els.template.content.cloneNode(true);
+
+    clone.querySelector('[data-slot="smiles"]').textContent = d.smiles;
+    clone.querySelector('[data-slot="structure"]').innerHTML = d.structure_svg;
+    clone.querySelector('[data-slot="attention-svg"]').innerHTML = d.attention_svg;
+
+    // predictions
+    var tbody = clone.querySelector('[data-slot="predictions"]');
+    var names = Object.keys(d.predictions);
+    for (var i = 0; i < names.length; i++) {
+      var name = names[i];
+      var val = d.predictions[name];
+      var err = Math.abs(val - d.actual);
+      var row = document.createElement("tr");
+      row.innerHTML =
+        "<td>" + escapeHtml(name) + "</td>" +
+        '<td class="val">' + val.toFixed(4) + "</td>" +
+        '<td class="' + errorClass(err) + '">' + err.toFixed(4) + "</td>";
+      tbody.appendChild(row);
+    }
+    var actualRow = document.createElement("tr");
+    actualRow.className = "actual-row";
+    actualRow.innerHTML =
+      "<td>Actual</td>" +
+      '<td class="val">' + d.actual.toFixed(4) + "</td><td></td>";
+    tbody.appendChild(actualRow);
+
+    // atom attention table
+    var atomSlot = clone.querySelector('[data-slot="atom-table"]');
+    if (d.atom_attention && d.atom_attention.length > 0) {
+      var atoms = d.atom_attention.slice().sort(function (a, b) {
+        return b.attention - a.attention;
+      });
+      var table = document.createElement("table");
+      table.innerHTML = "<thead><tr><th>#</th><th>Atom</th><th>Attention</th><th></th></tr></thead>";
+      var tb = document.createElement("tbody");
+      for (var j = 0; j < atoms.length; j++) {
+        var a = atoms[j];
+        var pct = (a.attention * 100).toFixed(1);
+        var w = Math.max(4, a.attention * 100);
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + a.idx + "</td>" +
+          "<td>" + escapeHtml(a.symbol) + "</td>" +
+          "<td>" + pct + "%</td>" +
+          '<td><span class="att-bar" style="width:' + w + "px;background:" + attentionColor(a.attention) + '"></span></td>';
+        tb.appendChild(tr);
+      }
+      table.appendChild(tb);
+      atomSlot.appendChild(table);
+    }
+
+    els.detail.innerHTML = "";
+    els.detail.appendChild(clone);
+    els.detail.classList.add("visible");
+    els.placeholder.style.display = "none";
+  }
+
+  function selectMolecule(id) {
+    state.activeIdx = id;
+    renderList(getFilteredMolecules());
+
+    els.detail.innerHTML = "<p style='color:#888;padding:20px 0'>Loading ...</p>";
+    els.detail.classList.add("visible");
+    els.placeholder.style.display = "none";
+
+    fetch("/api/molecule/" + id)
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(renderDetail)
+      .catch(function (err) {
+        els.detail.innerHTML = "<p style='color:#c62828;padding:20px 0'>Failed to load: " + escapeHtml(err.message) + "</p>";
+      });
+  }
+
+  // event: click on molecule list (delegated)
+  els.list.addEventListener("click", function (e) {
+    var item = e.target.closest(".mol-item");
+    if (!item) return;
+    selectMolecule(parseInt(item.dataset.id, 10));
+  });
+
+  // event: search filter
+  els.search.addEventListener("input", function () {
+    renderList(getFilteredMolecules());
+  });
+
+  // init: load molecule list
+  fetch("/api/molecules")
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      state.molecules = data;
+      renderList(data);
+    });
+})();
+</script>
+</body>
+</html>
